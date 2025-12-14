@@ -526,13 +526,20 @@ async def add_force_sub_command(client: Client, message: Message):
         parts = message.text.split()
         if len(parts) != 2:
             await message.reply_text(
-                "**Usage:** `/addforcesub <channel_id>`\n\n"
-                "**Example:** `/addforcesub -1001234567890`\n"
-                "or `/addforcesub @channelUsername`"
+                "❌ **Invalid Usage!**\n\n"
+                "**Format:** `/addforcesub <channel_id_or_username>`\n\n"
+                "**Examples:**\n"
+                "• `/addforcesub @channelUsername` (public channel)\n"
+                "• `/addforcesub -1001234567890` (private channel)\n\n"
+                "**For Private Channels:**\n"
+                "1. Make bot admin in the channel\n"
+                "2. Send any message in the channel\n"
+                "3. Forward that message to this bot\n"
+                "4. Then use this command"
             )
             return
         
-        channel_input = parts[1]
+        channel_input = parts[1].strip()
         
         # Try to get channel info
         try:
@@ -541,13 +548,45 @@ async def add_force_sub_command(client: Client, message: Message):
             channel_title = chat.title
             channel_username = chat.username  # Get username for public channels
         except Exception as e:
-            await message.reply_text(f"❌ Could not access channel: {str(e)}\n\nMake sure the bot is admin in the channel!")
+            error_msg = str(e).lower()
+            
+            if "peer_id_invalid" in error_msg or "peer id" in error_msg:
+                await message.reply_text(
+                    "❌ **Channel Not Accessible!**\n\n"
+                    "The bot hasn't interacted with this channel yet.\n\n"
+                    "**How to Fix:**\n"
+                    "1. Make sure bot is admin in the channel\n"
+                    "2. Send any message in the channel (e.g., 'test')\n"
+                    "3. **Forward that message to this bot**\n"
+                    "4. Wait a few seconds\n"
+                    "5. Try the command again\n\n"
+                    "Or use the public channel username: `/addforcesub @username`"
+                )
+            elif "chat_admin_required" in error_msg:
+                await message.reply_text(
+                    "❌ **Bot Must Be Admin!**\n\n"
+                    "The bot needs admin rights in the channel.\n\n"
+                    "**Steps:**\n"
+                    "1. Go to your channel\n"
+                    "2. Add this bot as admin\n"
+                    "3. Give it at least 'Add Members' permission\n"
+                    "4. Try the command again"
+                )
+            else:
+                await message.reply_text(
+                    f"❌ **Could not access channel!**\n\n"
+                    f"Error: {str(e)}\n\n"
+                    f"**Make sure:**\n"
+                    f"• Bot is admin in the channel\n"
+                    f"• You're using the correct ID/username\n"
+                    f"• For private channels, forward a message from the channel to the bot first"
+                )
             return
         
         # Check if already exists
         existing = force_sub_channels_collection.find_one({"channel_id": channel_id})
         if existing:
-            await message.reply_text(f"⚠️ Channel {channel_title} is already in force sub list!")
+            await message.reply_text(f"⚠️ Channel **{channel_title}** is already in force sub list!")
             return
         
         # Check limit
@@ -579,13 +618,14 @@ async def add_force_sub_command(client: Client, message: Message):
         
         if channel_username:
             success_msg += f"**Username:** @{channel_username}\n"
+            success_msg += f"**Link:** https://t.me/{channel_username}\n"
         
-        success_msg += "\nUsers must now join this channel to use the bot."
+        success_msg += "\n✅ Users must now join this channel to use the bot."
         
         await message.reply_text(success_msg)
     
     except Exception as e:
-        await message.reply_text(f"❌ Error: {str(e)}")
+        await message.reply_text(f"❌ Unexpected error: {str(e)}")
 
 
 @Client.on_message(filters.command("removeforcesub") & filters.private)
