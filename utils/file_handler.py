@@ -25,7 +25,8 @@ async def download_file(client, message, progress_callback=None):
     os.makedirs('downloads', exist_ok=True)
     
     # Generate unique filename: userid_random5digit_originalname
-    user_id = message.from_user.id if hasattr(message, 'from_user') else message.chat.id
+    # Handle cases where from_user is None (e.g., channel posts)
+    user_id = message.from_user.id if (hasattr(message, 'from_user') and message.from_user) else message.chat.id
     random_id = random.randint(10000, 99999)
     unique_filename = f"{user_id}_{random_id}_{file_name}"
     
